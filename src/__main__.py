@@ -1,26 +1,18 @@
-import argparse
+from src.vocab import get_id_token
 from src.parsing import Parsing
+
+from llm_sdk import Small_LLM_Model
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--functions_definition",
-                        default="data/input/functions_definition.json")
-    parser.add_argument("--input",
-                        default="data/input/function_calling_tests.json")
-    parser.add_argument("--output",
-                        default="data/output/function_calls.json")
-
-    args = parser.parse_args()
-
-    arguments = {}
-
-    arguments['fun_def'] = args.functions_definition
-    arguments['input'] = args.input
-    arguments['output'] = args.output
+    arguments = Parsing.parse_args()
 
     parse_fun_def = Parsing.load_json_data(arguments['fun_def'])
     parse_input_tests = Parsing.load_json_data(arguments['input'])
+
+    # model: Small_LLM_Model = Small_LLM_Model()
+
+    # id_token = get_id_token(model)
 
 
 if __name__ == "__main__":
