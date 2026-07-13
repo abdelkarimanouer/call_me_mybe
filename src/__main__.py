@@ -1,6 +1,4 @@
-from src.vocab import get_id_token
 from src.parsing import Parsing
-
 from llm_sdk import Small_LLM_Model
 
 
@@ -10,9 +8,7 @@ def main() -> None:
     parse_fun_def = Parsing.load_json_data(arguments['fun_def'])
     parse_input_tests = Parsing.load_json_data(arguments['input'])
 
-    # model: Small_LLM_Model = Small_LLM_Model()
-
-    # id_token = get_id_token(model)
+    model: Small_LLM_Model = Small_LLM_Model()
 
 
 if __name__ == "__main__":
