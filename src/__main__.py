@@ -9,11 +9,9 @@ def main() -> None:
     parse_fun_def = Parsing.load_json_data(arguments['fun_def'])
     parse_input_tests = Parsing.load_json_data(arguments['input'])
 
-    # model: Small_LLM_Model = Small_LLM_Model()
+    model: Small_LLM_Model = Small_LLM_Model()
 
     prompt = get_full_prompt("What is the sum of 2 and 3?", parse_fun_def)
-
-    print(prompt)
 
 
 if __name__ == "__main__":
