@@ -11,8 +11,6 @@ def main() -> None:
 
     model: Small_LLM_Model = Small_LLM_Model()
 
-    prompt = get_full_prompt("What is the sum of 2 and 3?", parse_fun_def)
-
 
 if __name__ == "__main__":
     try:
