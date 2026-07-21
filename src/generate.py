@@ -8,8 +8,8 @@ class Generate:
         model: Small_LLM_Model = Small_LLM_Model()
 
         steps = {
-            1: '{"prompt": ',
-            2: [model.encode(p)[0].tolist() for p in input_tests]
+            1: model.encode('{"prompt": ')[0].tolist(),
+            2: [model.encode(f'"{p}",')[0].tolist() for p in input_tests]
         }
 
         l_prompts = len(input_tests)
@@ -18,5 +18,8 @@ class Generate:
             for s in range(1, len(steps) + 1):
                 if s == 1:
                     static_ids = steps[s]
-                    print(static_ids)
-                s += 1
+                    full_ids.extend(static_ids)
+                elif s == 2:
+                    ids = steps[s][i]
+                    full_ids.extend(ids)
+            print(model.decode(full_ids))
