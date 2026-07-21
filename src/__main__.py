@@ -1,25 +1,15 @@
-from src.parsing import Parsing
-from llm_sdk import Small_LLM_Model
+from .parsing import Parsing
+from .generate import Generate
+from typing import List
 
 
 def main() -> None:
     arguments = Parsing.parse_args()
 
-    parse_input_tests = Parsing.get_input_tests(arguments['input'])
-    parse_fun_def = Parsing.get_funs_definition(arguments['fun_def'])
+    parse_input_tests: List = Parsing.get_input_tests(arguments['input'])
+    parse_fun_def: List = Parsing.get_funs_definition(arguments['fun_def'])
 
-    # model: Small_LLM_Model = Small_LLM_Model()
-
-    # prompt = "What is the sum of 2 and 3?"
-    # steps = {
-    #     1: model.encode('{"prompt": '),
-    #     2: model.encode(prompt)
-    # }
-    # full_ids = []
-    # l_steps = len(steps)
-    # for i in range(1, l_steps + 1):
-    #     full_ids.extend(steps[i][0].tolist())
-    # print(model.decode(full_ids))
+    Generate.run_generate(parse_input_tests, parse_fun_def)
 
 
 if __name__ == "__main__":
