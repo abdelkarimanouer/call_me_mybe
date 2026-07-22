@@ -1,41 +1,45 @@
 from llm_sdk import Small_LLM_Model
 from typing import List, Dict
+import numpy as np
 
 
 class Generate:
 
     @staticmethod
-    def get_full_prompt(prompt: str, parse_fun_def: Dict) -> str:
-        instruction = (
-            'You are a function-calling assistant. '
-            'Based on the user\'s question, '
-            'choose the most appropriate function from the list below '
-            'and provide the correct arguments. '
-            'Respond only with a JSON object in this exact shape: '
-            '{"name": "<function name>", "parameters": {...}}.'
+    def get_full_prompt_for_name(prompt: str, parse_fun_def: Dict) -> str:
+        function_names = "\n".join(
+            f"- {fun['name']}"
+            for fun in parse_fun_def
         )
 
-        functions_text = ""
-        for fun in parse_fun_def:
-            params_text = ", ".join(
-                f"{param_name} ({param_info['type']})"
-                for param_name, param_info in fun["parameters"].items()
-            )
-            functions_text += (f"- {fun['name']}: {fun['description']}\n  "
-                               f"Parameters: {params_text}\n\n")
-
-        full_prompt = (
-            f"{instruction}\n\n"
-            f"Available functions:\n\n{functions_text}\n"
-            f"User question: {prompt}\n\n"
-            f"Answer: {{"
+        return (
+            "Choose the single best matching function from the list below.\n"
+            "Return ONLY the function name.\n"
+            "Do not return anything else.\n"
+            "If none match, return ONLY: NONE.\n\n"
+            f"Functions:\n{function_names}\n\n"
+            f"User request:\n{prompt}"
         )
-
-        return full_prompt
 
     @staticmethod
-    def get_fun_name(prompt: str, funs_defintions: List) -> str:
-        ...
+    def get_fun_name(model: Small_LLM_Model, prompt: str,
+                     funs_defintions: List) -> str:
+        prompt_name = Generate.get_full_prompt_for_name(prompt,
+                                                        funs_defintions)
+        ids = model.encode(prompt_name)[0].tolist()
+        text = ""
+
+        while True:
+            logits = model.get_logits_from_input_ids(ids)
+            masked = [float('-inf') for _ in logits]
+            for id in ids:
+                masked[id] = logits[id]
+            bst = np.argmax(logits)
+            ids.append(bst)
+            text += model.decode(bst)
+            for f in funs_defintions:
+                if f['name'] in text:
+                    return f['name']
 
     @staticmethod
     def run_generate(input_tests: List, funs_def: List) -> None:
@@ -60,7 +64,8 @@ class Generate:
                 elif s == 3:
                     name_ids = steps[s]
                     full_ids.extend(name_ids)
-                    fun_name = Generate.get_fun_name(input_tests[i], funs_def)
+                    fun_name = Generate.get_fun_name(model,
+                                                     input_tests[i], funs_def)
                     fun_name = f'"{fun_name}",'
                     fun_name_ids = model.encode(fun_name)[0].tolist()
                     full_ids.extend(fun_name_ids)

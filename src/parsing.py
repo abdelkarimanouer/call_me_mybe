@@ -1,14 +1,67 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Literal
+from pydantic import (BaseModel, RootModel, ConfigDict,
+                      field_validator, ValidationError)
 import json
 import argparse
 import sys
-import regex
+
+
+class InputTest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    prompt: str
+
+    @field_validator("prompt")
+    @classmethod
+    def prompt_not_blank(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("prompt is empty or whitespace only")
+        return stripped
+
+
+class InputTestsList(RootModel[List[InputTest]]):
+    pass
+
+
+class ParamType(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["string", "number", "boolean", "integer"]
+
+
+class FunctionDefinition(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    description: str
+    parameters: Dict[str, ParamType]
+    returns: ParamType
+
+    @field_validator("name", "description")
+    @classmethod
+    def not_blank(cls, v: str) -> str:
+        if not v:
+            raise ValueError("field must not be empty")
+        return v
+
+    @field_validator("parameters")
+    @classmethod
+    def param_names_not_blank(cls, v: Dict[str, ParamType]
+                              ) -> Dict[str, ParamType]:
+        for param_name in v:
+            if not param_name:
+                raise ValueError("parameter name must not be empty")
+        return v
+
+
+class FunctionsDefinitionList(RootModel[List[FunctionDefinition]]):
+    pass
 
 
 class Parsing:
 
-    @staticmethod
-    def parse_args() -> Dict:
+    def parse_args(self) -> Dict:
 
         parser = argparse.ArgumentParser()
         parser.add_argument("--functions_definition",
@@ -26,33 +79,15 @@ class Parsing:
         arguments['output'] = args.output
         return arguments
 
-    @staticmethod
-    def check_input_tests(t: Any) -> bool:
-        if not isinstance(t, dict) or len(t) != 1:
-            return False
-
-        for key in t:
-            if bool(regex.match("^prompt$", str(key))) and t[key]:
-                return True
-            else:
-                return False
-
-    @staticmethod
-    def get_input_tests(path_file: str) -> List:
+    def get_input_tests(self, path_file: str) -> List:
         try:
             with open(path_file, "r") as f:
-                tests = json.load(f)
-                input_tests = []
-                for t in tests:
-                    if Parsing.check_input_tests(t) is False:
-                        print("""[ERROR]: Invalid test input. \
-Please enter it like this {\"Prompt\": \"<your prompt>\"} \
-""", file=sys.stderr)
-                        exit()
-                    else:
-                        for k in t:
-                            input_tests.append(t[k])
-                return input_tests
+                raw_data = json.load(f)
+                parsed = InputTestsList.model_validate(raw_data)
+                return [item.prompt for item in parsed.root]
+        except ValidationError as e:
+            print(f"[ERROR]: {e}", file=sys.stderr)
+            exit()
         except json.JSONDecodeError as e:
             print(f"[ERROR]: {e}")
             exit()
@@ -63,17 +98,19 @@ Please enter it like this {\"Prompt\": \"<your prompt>\"} \
             print(f"[ERROR]: {e}")
             exit()
 
-    @staticmethod
-    def check_funs_def(funs_def: Any) -> bool:
-        ...
-
-    @staticmethod
-    def get_funs_definition(path_file: str) -> List:
+    def get_funs_definition(self, path_file: str) -> List:
         try:
             with open(path_file, "r") as f:
-                funs_def = json.load(f)
-                if Parsing.check_funs_def(funs_def):
-                    return funs_def
+                raw_data = json.load(f)
+                parsed = FunctionsDefinitionList.model_validate(raw_data)
+                if len(parsed.root) == 0:
+                    print("[ERROR]: functions definition file is empty.",
+                          file=sys.stderr)
+                    exit()
+                return parsed.root
+        except ValidationError as e:
+            print(f"[ERROR]: {e}", file=sys.stderr)
+            exit()
         except json.JSONDecodeError as e:
             print(f"[ERROR]: {e}")
             exit()

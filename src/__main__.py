@@ -4,12 +4,13 @@ from typing import List
 
 
 def main() -> None:
-    arguments = Parsing.parse_args()
+    parser = Parsing()
+    arguments = parser.parse_args()
 
-    parse_input_tests: List = Parsing.get_input_tests(arguments['input'])
-    parse_fun_def: List = Parsing.get_funs_definition(arguments['fun_def'])
+    parse_input_tests: List = parser.get_input_tests(arguments['input'])
+    parse_fun_def: List = parser.get_funs_definition(arguments['fun_def'])
 
-    Generate.run_generate(parse_input_tests, parse_fun_def)
+    # Generate.run_generate(parse_input_tests, parse_fun_def)
 
 
 if __name__ == "__main__":
