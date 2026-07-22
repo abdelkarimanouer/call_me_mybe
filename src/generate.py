@@ -64,10 +64,5 @@ class Generate:
                 elif s == 3:
                     name_ids = steps[s]
                     full_ids.extend(name_ids)
-                    fun_name = Generate.get_fun_name(model,
-                                                     input_tests[i], funs_def)
-                    fun_name = f'"{fun_name}",'
-                    fun_name_ids = model.encode(fun_name)[0].tolist()
-                    full_ids.extend(fun_name_ids)
 
             print(model.decode(full_ids))

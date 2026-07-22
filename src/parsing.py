@@ -1,6 +1,5 @@
 from typing import List, Dict, Literal
-from pydantic import (BaseModel, RootModel, ConfigDict,
-                      field_validator, ValidationError)
+from pydantic import BaseModel, ConfigDict, ValidationError
 import json
 import argparse
 import sys
@@ -10,18 +9,6 @@ class InputTest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     prompt: str
-
-    @field_validator("prompt")
-    @classmethod
-    def prompt_not_blank(cls, v: str) -> str:
-        stripped = v.strip()
-        if not stripped:
-            raise ValueError("prompt is empty or whitespace only")
-        return stripped
-
-
-class InputTestsList(RootModel[List[InputTest]]):
-    pass
 
 
 class ParamType(BaseModel):
@@ -37,26 +24,6 @@ class FunctionDefinition(BaseModel):
     description: str
     parameters: Dict[str, ParamType]
     returns: ParamType
-
-    @field_validator("name", "description")
-    @classmethod
-    def not_blank(cls, v: str) -> str:
-        if not v:
-            raise ValueError("field must not be empty")
-        return v
-
-    @field_validator("parameters")
-    @classmethod
-    def param_names_not_blank(cls, v: Dict[str, ParamType]
-                              ) -> Dict[str, ParamType]:
-        for param_name in v:
-            if not param_name:
-                raise ValueError("parameter name must not be empty")
-        return v
-
-
-class FunctionsDefinitionList(RootModel[List[FunctionDefinition]]):
-    pass
 
 
 class Parsing:
@@ -79,44 +46,66 @@ class Parsing:
         arguments['output'] = args.output
         return arguments
 
-    def get_input_tests(self, path_file: str) -> List:
+    def __load_json_list(self, path_file: str) -> List:
         try:
             with open(path_file, "r") as f:
-                raw_data = json.load(f)
-                parsed = InputTestsList.model_validate(raw_data)
-                return [item.prompt for item in parsed.root]
-        except ValidationError as e:
-            print(f"[ERROR]: {e}", file=sys.stderr)
-            exit()
+                data = json.load(f)
         except json.JSONDecodeError as e:
             print(f"[ERROR]: {e}")
-            exit()
+            exit(1)
         except (FileNotFoundError, PermissionError) as e:
             print(f"[ERROR]: {e}")
-            exit()
+            exit(1)
         except Exception as e:
             print(f"[ERROR]: {e}")
-            exit()
+            exit(1)
 
-    def get_funs_definition(self, path_file: str) -> List:
+        if not isinstance(data, list) or len(data) == 0:
+            print(f"[ERROR]: {path_file} must contain a non-empty list",
+                  file=sys.stderr)
+            exit(1)
+
+        return data
+
+    def __build_input_test(self, item: Dict) -> str:
         try:
-            with open(path_file, "r") as f:
-                raw_data = json.load(f)
-                parsed = FunctionsDefinitionList.model_validate(raw_data)
-                if len(parsed.root) == 0:
-                    print("[ERROR]: functions definition file is empty.",
-                          file=sys.stderr)
-                    exit()
-                return parsed.root
+            test = InputTest(**item)
         except ValidationError as e:
             print(f"[ERROR]: {e}", file=sys.stderr)
-            exit()
-        except json.JSONDecodeError as e:
-            print(f"[ERROR]: {e}")
-            exit()
-        except (FileNotFoundError, PermissionError) as e:
-            print(f"[ERROR]: {e}")
-            exit()
-        except Exception as e:
-            print(f"[ERROR]: {e}")
-            exit()
+            exit(1)
+
+        prompt = test.prompt.strip()
+        if not prompt:
+            print("[ERROR]: prompt is empty or whitespace only",
+                  file=sys.stderr)
+            exit(1)
+
+        return prompt
+
+    def __build_fun_def(self, item: Dict) -> FunctionDefinition:
+        try:
+            fun_def = FunctionDefinition(**item)
+        except ValidationError as e:
+            print(f"[ERROR]: {e}", file=sys.stderr)
+            exit(1)
+
+        if not fun_def.name.isidentifier() or not fun_def.description.strip():
+            print("[ERROR]: Invalid name/description",
+                  file=sys.stderr)
+            exit(1)
+
+        for param_name in fun_def.parameters:
+            if not param_name.strip():
+                print("[ERROR]: parameter name is empty or whitespace only",
+                      file=sys.stderr)
+                exit(1)
+
+        return fun_def
+
+    def get_input_tests(self, path_file: str) -> List[str]:
+        raw_data = self.__load_json_list(path_file)
+        return [self.__build_input_test(item) for item in raw_data]
+
+    def get_funs_definition(self, path_file: str) -> List[FunctionDefinition]:
+        raw_data = self.__load_json_list(path_file)
+        return [self.__build_fun_def(item) for item in raw_data]
