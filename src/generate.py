@@ -1,12 +1,7 @@
-"""
-Constrained decoding module for function calling.
-Generates structured JSON function calls via token masking.
-"""
-
 from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
 from typing import List, Dict, Any
 from .vocab import Vocab
-from .save_result import save_results, Result
+from .save_result import ResultSaver, Result
 from .parameters import Parameters
 from .fun_name import FunName
 
@@ -88,5 +83,5 @@ class Generate:
                 ))
 
         print(f"\nSaving {len(results)} results to {output_path}")
-        save_results(results, output_path)
+        ResultSaver.save_results(results, output_path)
         print("Done!")
