@@ -19,8 +19,8 @@ class FunName:
         Presents the function list and asks for the best match.
         """
         function_names = "\n".join(
-            f"- {fun['name'] if isinstance(fun, dict) else fun.name}: "
-            f"{fun['description'] if isinstance(fun, dict) else fun.description}"  # noqa: E501
+            f"- {fun.name}: "
+            f"{fun.description}"
             for fun in parse_fun_def
         )
 
@@ -51,14 +51,11 @@ class FunName:
         )
         ids = model.encode(prompt_name)[0].tolist()
 
-        names = [
-            f['name'] if isinstance(f, dict) else f.name
-            for f in funs_definitions
-        ]
+        names = [f.name for f in funs_definitions]
         names.append("NONE")
 
         text = ""
-        for _ in range(100):
+        while True:
             logits = model.get_logits_from_input_ids(ids)
 
             allowed = set()
@@ -80,7 +77,6 @@ class FunName:
 
             text += chosen_str
             ids.append(chosen)
-
             if text in names:
                 return str(text)
 

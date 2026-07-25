@@ -62,6 +62,15 @@ class Parsing:
         arguments['output'] = args.output
         return arguments
 
+    def __error_on_dup_key(self, ordered_pairs):
+        """Reject JSON if any duplicate keys are found."""
+        seen_keys = set()
+        for key, _ in ordered_pairs:
+            if key in seen_keys:
+                raise ValueError(f"Duplicate key detected in JSON: '{key}'")
+            seen_keys.add(key)
+        return dict(ordered_pairs)
+
     def __load_json_list(self, path_file: str) -> List[Any]:
         """
         Loads a JSON file containing a list of objects.
@@ -69,7 +78,8 @@ class Parsing:
         """
         try:
             with open(path_file, "r") as f:
-                data = json.load(f)
+                data = json.load(f,
+                                 object_pairs_hook=self.__error_on_dup_key)
         except json.JSONDecodeError as e:
             print(f"[ERROR]: {e}")
             exit(1)
@@ -138,10 +148,28 @@ class Parsing:
         raw_data = self.__load_json_list(path_file)
         return [self.__build_input_test(item) for item in raw_data]
 
+    def __check_duplicate_names(self, raw_data: Dict) -> bool:
+        """
+        Check if there is duplicate in the fun names
+        if yes return True else return False
+        """
+        seen_names = set()
+        for item in raw_data:
+            name = item.get('name')
+            if name in seen_names:
+                return True
+            seen_names.add(name)
+        return False
+
     def get_funs_definition(self, path_file: str) -> List[FunctionDefinition]:
         """
         Loads and retrieves function definitions from a file.
         Returns a list of FunctionDefinition objects.
         """
-        raw_data = self.__load_json_list(path_file)
+        raw_data: Dict = self.__load_json_list(path_file)
+
+        if self.__check_duplicate_names(raw_data):
+            print("[ERROR]: Duplicate name found!")
+            exit(1)
+
         return [self.__build_fun_def(item) for item in raw_data]

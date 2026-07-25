@@ -55,7 +55,6 @@ class Generate:
         print("Loading model...")
         model: Small_LLM_Model = Small_LLM_Model()
 
-        print("Building vocabulary lookup...")
         id_token = Vocab.get_id_token(model)
         token_lookup = Vocab.build_token_lookup(id_token)
 
@@ -70,12 +69,8 @@ class Generate:
                     id_token, token_lookup
                 )
                 results.append(result)
-            except Exception as e:
-                print(f"  [WARNING] Failed: {e}")
-                names = [
-                    f['name'] if isinstance(f, dict) else f.name
-                    for f in funs_def
-                ]
+            except Exception:
+                names = [f.name for f in funs_def]
                 results.append(Result(
                     prompt=prompt,
                     name=names[0] if names else "unknown",
