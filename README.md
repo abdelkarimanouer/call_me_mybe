@@ -52,7 +52,8 @@ This token-by-token guidance guarantees 100% syntactically and semantically corr
 
 ## Challenges faced
 - **Tokenization nuances**: Handling preceding spaces and special characters specific to the tokenizer. Solved by carefully mapping the vocabulary file.
-- **Constraining nested structures**: Dynamically tracking the JSON parsing state during token generation. Solved by implementing a state machine that filters valid tokens based on the current JSON context (e.g., expecting a key vs. a value).
+- **Constraining nested structures**: Dynamically tracking the JSON parsing state during token generation. Solved by implementing logit masking that computes valid next tokens at each step based on the current JSON context (e.g., expecting a key vs. a value), setting all other token logits to negative infinity.
+- **Constraining data types**: Ensuring the model outputs correctly formatted parameter values (strings, numbers, booleans). Solved by implementing dynamic logit masking that restricts token generation based on the expected parameter type.
 
 ## Testing strategy
 - **Edge Cases**: Tested against empty strings, large numbers, special characters, and ambiguous prompts.
