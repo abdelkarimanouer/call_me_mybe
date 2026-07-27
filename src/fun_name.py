@@ -67,6 +67,8 @@ class FunName:
                 new_text = text + clean_str
                 if any(name.startswith(new_text) for name in names):
                     allowed.add(tid)
+                elif text in names:
+                    allowed.add(tid)
 
             if not allowed:
                 break
@@ -75,10 +77,15 @@ class FunName:
             chosen = Logit.select_best_token(masked)
             chosen_str = id_token.get(chosen, '').lstrip(' ')
 
-            text += chosen_str
-            ids.append(chosen)
-            if text in names:
-                return str(text)
+            new_text = text + chosen_str
+            if any(name.startswith(new_text) for name in names):
+                text = new_text
+                ids.append(chosen)
+            else:
+                if text in names:
+                    return str(text)
+                else:
+                    break
 
         if text in names:
             return str(text)

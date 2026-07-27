@@ -15,11 +15,13 @@ class Parameters:
         prompt: str,
         func_name: str,
         func_def: Dict[str, Any],
-        param_name: str
+        param_name: str,
+        extracted_params: Dict[str, Any] = None
     ) -> str:
         """
         Builds a parameter extraction prompt.
         Asks the model to extract a specific parameter from the request.
+        Includes previously extracted parameters for context.
         """
         param_type = func_def['parameters'][param_name]['type']
 
@@ -36,15 +38,26 @@ class Parameters:
                 "Value for 'replacement': *\n\n"
             )
 
+        extracted_str = ""
+        if extracted_params:
+            extracted_str = "Previously extracted parameters:\n"
+            for k, v in extracted_params.items():
+                if isinstance(v, str):
+                    extracted_str += f"- {k}: '{v}'\n"
+                else:
+                    extracted_str += f"- {k}: {v}\n"
+            extracted_str += "\n"
+
         return (
             f"Extract the EXACT value for parameter '{param_name}' "
             f"(type: {param_type}) from the user request.\n"
             f"DO NOT compute or evaluate the result. Only extract "
-            f"the argument for '{param_name}'.\n\n"  # noqa: E501
+            f"the argument for '{param_name}'.\n\n"
             f"{few_shot}"
             f"Function: {func_name}\n"
             f"Description: {func_def['description']}\n"
-            f"User request: {prompt}\n"
+            f"User request: {prompt}\n\n"
+            f"{extracted_str}"
             f"Value for '{param_name}': "
         )
 
@@ -80,7 +93,8 @@ class Parameters:
         func_def: Dict[str, Any],
         param_name: str,
         id_token: Dict[int, str],
-        token_lookup: Dict[str, int]
+        token_lookup: Dict[str, int],
+        extracted_params: Dict[str, Any] = None
     ) -> Any:
         """
         Extracts a single parameter value.
@@ -89,7 +103,7 @@ class Parameters:
         param_type = func_def['parameters'][param_name]['type']
 
         extraction_prompt = Parameters.build_param_extraction_prompt(
-            prompt, func_name, func_def, param_name
+            prompt, func_name, func_def, param_name, extracted_params
         )
         input_ids = model.encode(extraction_prompt)[0].tolist()
 
@@ -103,7 +117,7 @@ class Parameters:
             if param_name == 'regex':
                 if value_str == 'aeiouAEIOU':
                     value_str = '[aeiouAEIOU]'
-                elif value_str.isnumeric():
+                elif value_str.replace(' ', '').isnumeric() or value_str in ('0-9', '[0-9]+'):
                     value_str = '\\d+'
                 value_str = re.sub(r'\\{2,}', r'\\', value_str)
             return value_str
@@ -145,7 +159,7 @@ class Parameters:
         for param_name in func_def['parameters']:
             value = Parameters.extract_parameter_value(
                 model, prompt, func_name, func_def,
-                param_name, id_token, token_lookup
+                param_name, id_token, token_lookup, parameters
             )
             parameters[param_name] = value
 
