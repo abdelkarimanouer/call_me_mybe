@@ -1,5 +1,5 @@
 from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import re
 from .constrained_decoding import ConstrainedDecoding
 
@@ -16,7 +16,7 @@ class Parameters:
         func_name: str,
         func_def: Dict[str, Any],
         param_name: str,
-        extracted_params: Dict[str, Any] = None
+        extracted_params: Optional[Dict[str, Any]] = None
     ) -> str:
         """
         Builds a parameter extraction prompt.
@@ -94,7 +94,7 @@ class Parameters:
         param_name: str,
         id_token: Dict[int, str],
         token_lookup: Dict[str, int],
-        extracted_params: Dict[str, Any] = None
+        extracted_params: Optional[Dict[str, Any]] = None
     ) -> Any:
         """
         Extracts a single parameter value.
@@ -117,7 +117,8 @@ class Parameters:
             if param_name == 'regex':
                 if value_str == 'aeiouAEIOU':
                     value_str = '[aeiouAEIOU]'
-                elif value_str.replace(' ', '').isnumeric() or value_str in ('0-9', '[0-9]+'):
+                elif (value_str.replace(' ', '').isnumeric() or
+                      value_str in ('0-9', '[0-9]+')):
                     value_str = '\\d+'
                 value_str = re.sub(r'\\{2,}', r'\\', value_str)
             return value_str

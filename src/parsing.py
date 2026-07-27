@@ -62,7 +62,7 @@ class Parsing:
         arguments['output'] = args.output
         return arguments
 
-    def __error_on_dup_key(self, ordered_pairs):
+    def __error_on_dup_key(self, ordered_pairs: Any) -> Dict:
         """Reject JSON if any duplicate keys are found."""
         seen_keys = set()
         for key, _ in ordered_pairs:
@@ -148,7 +148,7 @@ class Parsing:
         raw_data = self.__load_json_list(path_file)
         return [self.__build_input_test(item) for item in raw_data]
 
-    def __check_duplicate_names(self, raw_data: Dict) -> bool:
+    def __check_duplicate_names(self, raw_data: List[Any]) -> bool:
         """
         Check if there is duplicate in the fun names
         if yes return True else return False
@@ -166,7 +166,7 @@ class Parsing:
         Loads and retrieves function definitions from a file.
         Returns a list of FunctionDefinition objects.
         """
-        raw_data: Dict = self.__load_json_list(path_file)
+        raw_data: List = self.__load_json_list(path_file)
 
         if self.__check_duplicate_names(raw_data):
             print("[ERROR]: Duplicate name found!")
