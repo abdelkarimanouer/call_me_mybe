@@ -64,8 +64,8 @@ class FunName:
                 if not clean_str:
                     continue
 
-                new_text = text + clean_str
-                if any(name.startswith(new_text) for name in names):
+                new_string = text + clean_str
+                if any(name.startswith(new_string) for name in names):
                     allowed.add(tid)
                 elif text in names:
                     allowed.add(tid)
@@ -78,6 +78,7 @@ class FunName:
             chosen_str = id_token.get(chosen_id, '').lstrip(' ')
 
             new_text = text + chosen_str
+            print(new_text)
             if any(name.startswith(new_text) for name in names):
                 text = new_text
                 ids.append(chosen_id)
