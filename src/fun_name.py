@@ -74,13 +74,13 @@ class FunName:
                 break
 
             masked = Logit.mask_logits(logits, allowed)
-            chosen = Logit.select_best_token(masked)
-            chosen_str = id_token.get(chosen, '').lstrip(' ')
+            chosen_id = Logit.select_best_token(masked)
+            chosen_str = id_token.get(chosen_id, '').lstrip(' ')
 
             new_text = text + chosen_str
             if any(name.startswith(new_text) for name in names):
                 text = new_text
-                ids.append(chosen)
+                ids.append(chosen_id)
             else:
                 if text in names:
                     return str(text)
