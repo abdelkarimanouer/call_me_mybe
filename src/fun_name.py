@@ -78,7 +78,6 @@ class FunName:
             chosen_str = id_token.get(chosen_id, '').lstrip(' ')
 
             new_text = text + chosen_str
-            print(new_text)
             if any(name.startswith(new_text) for name in names):
                 text = new_text
                 ids.append(chosen_id)
