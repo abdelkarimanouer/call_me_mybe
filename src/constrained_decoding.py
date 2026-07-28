@@ -21,9 +21,10 @@ class ConstrainedDecoding:
         Generates a JSON string value.
         Uses constrained decoding to emit characters until closing quote.
         """
-        quote_ids = Vocab.find_tokens_for_exact_string('"', token_lookup)  # noqa: E501
+        quote_ids = Vocab.find_tokens_for_exact_string('"', token_lookup)
         if not quote_ids:
-            quote_ids = Vocab.find_tokens_for_exact_string('â\x80\x9c', token_lookup)  # noqa: E501
+            quote_ids = Vocab.find_tokens_for_exact_string('â\x80\x9c',
+                                                           token_lookup)
         if quote_ids:
             input_ids = input_ids + [quote_ids[0]]
 
