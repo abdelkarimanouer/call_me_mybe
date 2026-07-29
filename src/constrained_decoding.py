@@ -29,9 +29,8 @@ class ConstrainedDecoding:
             input_ids = input_ids + [quote_ids[0]]
 
         result_chars: List[str] = []
-        max_tokens = 150
 
-        for _ in range(max_tokens):
+        while True:
             logits = model.get_logits_from_input_ids(input_ids)
 
             allowed: Set[int] = set()
@@ -42,8 +41,8 @@ class ConstrainedDecoding:
                 allowed.add(tid)
 
             masked = Logit.mask_logits(logits, allowed)
-            chosen = Logit.select_best_token(masked)
-            chosen_str = id_token.get(chosen, '')
+            chosen_id = Logit.select_best_token(masked)
+            chosen_str = id_token.get(chosen_id, '')
 
             if not chosen_str:
                 break
@@ -51,11 +50,11 @@ class ConstrainedDecoding:
             if '"' in chosen_str:
                 clean_str = chosen_str.split('"')[0].replace('Ġ', ' ')
                 result_chars.append(clean_str)
-                input_ids = input_ids + [chosen]
+                input_ids = input_ids + [chosen_id]
                 break
 
             result_chars.append(chosen_str.replace('Ġ', ' '))
-            input_ids = input_ids + [chosen]
+            input_ids = input_ids + [chosen_id]
 
         return ''.join(result_chars), input_ids
 
@@ -70,11 +69,10 @@ class ConstrainedDecoding:
         Allows digits, signs, decimals, and scientific notation constraints.
         """
         number_chars: List[str] = []
-        max_tokens = 30
         has_dot = False
         has_digit = False
 
-        for _ in range(max_tokens):
+        while True:
             logits = model.get_logits_from_input_ids(input_ids)
             allowed: Set[int] = set()
 
