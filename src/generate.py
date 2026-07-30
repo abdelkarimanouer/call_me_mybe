@@ -1,9 +1,9 @@
 from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
 from typing import List, Dict, Any
 from .vocab import Vocab
-from .save_result import ResultSaver, Result
 from .parameters import Parameters
 from .fun_name import FunName
+import json
 
 
 class Generate:
@@ -19,7 +19,7 @@ class Generate:
         funs_def: List[Any],
         id_token: Dict[int, str],
         token_lookup: Dict[str, int]
-    ) -> Result:
+    ) -> str:
         """
         Processes a single user prompt.
         Identifies the function and extracts its parameters.
@@ -30,17 +30,17 @@ class Generate:
         print(f"  → Function: {func_name}")
 
         if func_name == "NONE":
-            return Result(prompt=prompt, name="NONE", parameters={})
+            example = '{' + '\"prompt\":\"' + prompt + '\",\"name\":\"NONE'
+            example += '\",\"parameters\": {' + '}'
+            return example
 
         func_def = FunName.find_function_def(func_name, funs_def)
 
-        parameters = Parameters.extract_all_parameters(
+        real_json = Parameters.extract_all_parameters(
             model, prompt, func_name, func_def,
             id_token, token_lookup
         )
-        print(f"  → Parameters: {parameters}")
-
-        return Result(prompt=prompt, name=func_name, parameters=parameters)
+        return real_json
 
     @staticmethod
     def run_generate(
@@ -58,25 +58,20 @@ class Generate:
         id_token = Vocab.get_id_token(model)
         token_lookup = Vocab.build_token_lookup(id_token)
 
-        results: List[Result] = []
+        results: List[Dict] = []
 
         print(f"Processing {len(input_tests)} prompts...")
         for i, prompt in enumerate(input_tests):
             print(f"\n[{i + 1}/{len(input_tests)}]")
-            try:
-                result = Generate.process_single_prompt(
-                    model, prompt, funs_def,
-                    id_token, token_lookup
-                )
-                results.append(result)
-            except Exception:
-                names = [f.name for f in funs_def]
-                results.append(Result(
-                    prompt=prompt,
-                    name=names[0] if names else "unknown",
-                    parameters={}
-                ))
+            real_json = Generate.process_single_prompt(
+                model, prompt, funs_def,
+                id_token, token_lookup
+            )
+            my_result = json.loads(real_json)
+            print(my_result)
+            results.append(my_result)
 
         print(f"\nSaving {len(results)} results to {output_path}")
-        ResultSaver.save_results(results, output_path)
+        with open(output_path, "w") as f:
+            json.dump(results, f, indent=4)
         print("Done!")

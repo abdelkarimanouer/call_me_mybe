@@ -1,6 +1,5 @@
 from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
-from typing import Dict, Any, Optional
-import re
+from typing import Dict, Any, List
 from .constrained_decoding import ConstrainedDecoding
 
 
@@ -15,112 +14,49 @@ class Parameters:
         prompt: str,
         func_name: str,
         func_def: Dict[str, Any],
-        param_name: str,
-        extracted_params: Optional[Dict[str, Any]] = None
+        parameters: Dict,
     ) -> str:
         """
         Builds a parameter extraction prompt.
         Asks the model to extract a specific parameter from the request.
         Includes previously extracted parameters for context.
         """
-        param_type = func_def['parameters'][param_name]['type']
 
-        few_shot = ""
-        if func_name == "fn_substitute_string_with_regex":
-            few_shot = (
-                "Example 1:\n"
-                "User request: Replace all numbers in 'test 123' with X\n"
-                "Value for 'regex': [0-9]+\n"
-                "Value for 'replacement': X\n\n"
-                "Example 2:\n"
-                "User request: Replace all vowels in 'hello' with asterisks\n"
-                "Value for 'regex': [aeiouAEIOU]\n"
-                "Value for 'replacement': *\n\n"
+        params_detail = "\n".join(
+                f"- {name} (type: {spec['type']})"
+                for name, spec in parameters.items()
             )
-
-        extracted_str = ""
-        if extracted_params:
-            extracted_str = "Previously extracted parameters:\n"
-            for k, v in extracted_params.items():
-                if isinstance(v, str):
-                    extracted_str += f"- {k}: '{v}'\n"
-                else:
-                    extracted_str += f"- {k}: {v}\n"
-            extracted_str += "\n"
-
         return (
-            f"Extract the EXACT value for parameter '{param_name}' "
-            f"(type: {param_type}) from the user request.\n"
-            f"DO NOT compute or evaluate the result. Only extract "
-            f"the argument for '{param_name}'.\n\n"
-            f"{few_shot}"
+            f"You are a parameter extraction assistant.\n"
+            f"Extract parameter values from the user request "
+            f"and output them as a JSON object.\n\n"
             f"Function: {func_name}\n"
-            f"Description: {func_def['description']}\n"
+            f"Description: {func_def['description']}\n\n"
+            f"Parameters:\n{params_detail}\n\n"
             f"User request: {prompt}\n\n"
-            f"{extracted_str}"
-            f"Value for '{param_name}': "
-        )
-
-    @staticmethod
-    def build_json_prompt(
-        prompt: str,
-        func_name: str,
-        func_def: Dict[str, Any]
-    ) -> str:
-        """
-        Builds a full JSON parameter prompt.
-        Asks the model to produce all function arguments in JSON format.
-        """
-        params_desc = ", ".join(
-            f'"{name}" ({info["type"]})'
-            for name, info in func_def['parameters'].items()
-        )
-        return (
-            "Extract the function arguments from the user request.\n"
-            f"Function: {func_name}\n"
-            f"Description: {func_def['description']}\n"
-            f"Parameters: {params_desc}\n"
-            f"User request: {prompt}\n"
-            "Return ONLY a JSON object with the parameter values.\n"
-            "JSON: "
+            f"Rules:\n"
+            f"- Output a single JSON object\n"
+            f"- No explanation, no extra text\n\n"
+            f"Output:"
         )
 
     @staticmethod
     def extract_parameter_value(
         model: Small_LLM_Model,
-        prompt: str,
-        func_name: str,
-        func_def: Dict[str, Any],
-        param_name: str,
+        input_ids: List[int],
+        param_type: str,
         id_token: Dict[int, str],
         token_lookup: Dict[str, int],
-        extracted_params: Optional[Dict[str, Any]] = None
     ) -> Any:
         """
         Extracts a single parameter value.
         Uses constrained decoding to match the expected parameter type.
         """
-        param_type = func_def['parameters'][param_name]['type']
-
-        extraction_prompt = Parameters.build_param_extraction_prompt(
-            prompt, func_name, func_def, param_name, extracted_params
-        )
-        input_ids = model.encode(extraction_prompt)[0].tolist()
 
         if param_type == 'string':
             value_str, _ = ConstrainedDecoding.generate_string_value(
                 model, input_ids, id_token, token_lookup
             )
-            if param_name == 'replacement':
-                if value_str in ('asterisks', '****'):
-                    value_str = '*'
-            if param_name == 'regex':
-                if value_str == 'aeiouAEIOU':
-                    value_str = '[aeiouAEIOU]'
-                elif (value_str.replace(' ', '').isnumeric() or
-                      value_str in ('0-9', '[0-9]+')):
-                    value_str = '\\d+'
-                value_str = re.sub(r'\\{2,}', r'\\', value_str)
             return value_str
 
         elif param_type in ('number', 'integer'):
@@ -150,18 +86,37 @@ class Parameters:
         func_def: Dict[str, Any],
         id_token: Dict[int, str],
         token_lookup: Dict[str, int]
-    ) -> Dict[str, Any]:
+    ) -> str:
         """
         Extracts all parameters for a given function call.
         Iterates over the definition and extracts values individually.
         """
         parameters: Dict[str, Any] = {}
+        prompt = prompt.replace("\"", "\\\"")
+        real_json = '{' + '"prompt":"' + prompt + '","name":"' + func_name
+        real_json += '","parameters": {'
+
+        extraction_prompt = Parameters.build_param_extraction_prompt(
+            prompt, func_name, func_def, func_def['parameters'])
+        input_ids = model.encode(extraction_prompt)[0].tolist()
 
         for param_name in func_def['parameters']:
-            value = Parameters.extract_parameter_value(
-                model, prompt, func_name, func_def,
-                param_name, id_token, token_lookup, parameters
-            )
-            parameters[param_name] = value
 
-        return parameters
+            real_json += '"' + param_name + '": '
+
+            param_type = func_def['parameters'][param_name]['type']
+
+            input_ids += model.encode(real_json)[0].tolist()
+
+            value = Parameters.extract_parameter_value(model, input_ids,
+                                                       param_type,
+                                                       id_token, token_lookup)
+            if param_type == "string":
+                real_json += '"' + value + '",'
+            else:
+                real_json += str(value) + ","
+            parameters[param_name] = value
+        real_json = real_json[:-1]
+        real_json += "}}"
+
+        return real_json
