@@ -41,7 +41,9 @@ class Main:
 if __name__ == "__main__":
     try:
         Main.main()
-    except KeyboardInterrupt as e:
-        print(f"[ERROR]: {e}")
+    except KeyboardInterrupt:
+        print("[ERROR]: the program stoped!")
+        exit(1)
     except Exception as e:
         print(f"[ERROR]: {e}")
+        exit(1)

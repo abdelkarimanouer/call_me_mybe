@@ -29,7 +29,6 @@ class FunName:
             "from the list below.\n"
             "Return ONLY the function name.\n"
             "Do not return anything else.\n"
-            "If none match, return ONLY: NONE.\n\n"
             f"Functions:\n{function_names}\n\n"
             f"User request:\n{prompt}\n\n"
             "Function name: "
@@ -52,7 +51,6 @@ class FunName:
         ids = model.encode(prompt_name)[0].tolist()
 
         names = [f.name for f in funs_definitions]
-        names.append("NONE")
 
         text = ""
         while True:

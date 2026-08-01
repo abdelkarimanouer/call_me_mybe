@@ -4,6 +4,7 @@ from .vocab import Vocab
 from .parameters import Parameters
 from .fun_name import FunName
 import json
+import os
 
 
 class Generate:
@@ -11,6 +12,17 @@ class Generate:
     Orchestrates function call generation.
     Main entry point for converting prompts into function calls.
     """
+
+    @staticmethod
+    def save_json_output(output_path: str, results: List[Dict]) -> None:
+        """Save the result ouput in the output json file"""
+
+        print(f"\nSaving {len(results)} results to {output_path}")
+
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, "w") as f:
+            json.dump(results, f, indent=4)
+        print("Done!")
 
     @staticmethod
     def process_single_prompt(
@@ -29,24 +41,19 @@ class Generate:
         func_name = FunName.get_fun_name(model, prompt, funs_def, id_token)
         print(f"  → Function: {func_name}")
 
-        if func_name == "NONE":
-            example = '{' + '\"prompt\":\"' + prompt + '\",\"name\":\"NONE'
-            example += '\",\"parameters\": {' + '}'
-            return example
-
         func_def = FunName.find_function_def(func_name, funs_def)
 
         real_json = Parameters.extract_all_parameters(
             model, prompt, func_name, func_def,
             id_token, token_lookup
         )
-        return real_json
+        return str(real_json)
 
     @staticmethod
     def run_generate(
         input_tests: List[str],
         funs_def: List[Any],
-        output_path: str = "data/output/function_calls.json"
+        output_path: str
     ) -> None:
         """
         Runs the full generation pipeline.
@@ -67,11 +74,9 @@ class Generate:
                 model, prompt, funs_def,
                 id_token, token_lookup
             )
+
             my_result = json.loads(real_json)
-            print(my_result)
+            print(f"  → Output: {my_result}")
             results.append(my_result)
 
-        print(f"\nSaving {len(results)} results to {output_path}")
-        with open(output_path, "w") as f:
-            json.dump(results, f, indent=4)
-        print("Done!")
+        Generate.save_json_output(output_path, results)

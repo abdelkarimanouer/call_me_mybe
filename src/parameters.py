@@ -1,6 +1,7 @@
 from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
 from typing import Dict, Any, List
 from .constrained_decoding import ConstrainedDecoding
+import json
 
 
 class Parameters:
@@ -91,32 +92,35 @@ class Parameters:
         Extracts all parameters for a given function call.
         Iterates over the definition and extracts values individually.
         """
-        parameters: Dict[str, Any] = {}
-        prompt = prompt.replace("\"", "\\\"")
-        real_json = '{' + '"prompt":"' + prompt + '","name":"' + func_name
+        real_json = '{"prompt": ' + json.dumps(prompt)
+        real_json += ',"name":"' + func_name
         real_json += '","parameters": {'
 
         extraction_prompt = Parameters.build_param_extraction_prompt(
             prompt, func_name, func_def, func_def['parameters'])
-        input_ids = model.encode(extraction_prompt)[0].tolist()
 
+        has_params = False
         for param_name in func_def['parameters']:
+            has_params = True
 
-            real_json += '"' + param_name + '": '
+            real_json += '"' + param_name + '":'
 
             param_type = func_def['parameters'][param_name]['type']
 
-            input_ids += model.encode(real_json)[0].tolist()
+            input_ids = model.encode(
+                extraction_prompt + real_json)[0].tolist()
 
             value = Parameters.extract_parameter_value(model, input_ids,
                                                        param_type,
                                                        id_token, token_lookup)
+
             if param_type == "string":
-                real_json += '"' + value + '",'
+                real_json += json.dumps(value) + ","
             else:
                 real_json += str(value) + ","
-            parameters[param_name] = value
-        real_json = real_json[:-1]
+
+        if has_params:
+            real_json = real_json[:-1]
         real_json += "}}"
 
         return real_json
