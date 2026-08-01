@@ -48,21 +48,16 @@ class Parameters:
         param_type: str,
         id_token: Dict[int, str],
         token_lookup: Dict[str, int],
+        l_prompt: int
     ) -> Any:
         """
         Extracts a single parameter value.
         Uses constrained decoding to match the expected parameter type.
         """
 
-        if param_type == 'string':
-            value_str, _ = ConstrainedDecoding.generate_string_value(
-                model, input_ids, id_token, token_lookup
-            )
-            return value_str
-
-        elif param_type in ('number', 'integer'):
+        if param_type in ('number', 'integer'):
             value_str, _ = ConstrainedDecoding.generate_number_value(
-                model, input_ids, id_token
+                model, input_ids, id_token, l_prompt
             )
             value_str = value_str.strip()
             if not value_str:
@@ -76,8 +71,11 @@ class Parameters:
                 model, input_ids, id_token
             )
             return value_str == 'true'
-
-        return None
+        else:
+            value_str, _ = ConstrainedDecoding.generate_string_value(
+                model, input_ids, id_token, token_lookup, l_prompt
+            )
+            return value_str
 
     @staticmethod
     def extract_all_parameters(
@@ -100,6 +98,7 @@ class Parameters:
             prompt, func_name, func_def, func_def['parameters'])
 
         has_params = False
+        l_prompt = len(prompt)
         for param_name in func_def['parameters']:
             has_params = True
 
@@ -112,7 +111,8 @@ class Parameters:
 
             value = Parameters.extract_parameter_value(model, input_ids,
                                                        param_type,
-                                                       id_token, token_lookup)
+                                                       id_token, token_lookup,
+                                                       l_prompt)
 
             if param_type == "string":
                 real_json += json.dumps(value) + ","

@@ -53,7 +53,8 @@ class FunName:
         names = [f.name for f in funs_definitions]
 
         text = ""
-        while True:
+        l_prompt = len(prompt)
+        for _ in range(l_prompt):
             logits = model.get_logits_from_input_ids(ids)
 
             allowed = set()

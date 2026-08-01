@@ -15,7 +15,8 @@ class ConstrainedDecoding:
         model: Small_LLM_Model,
         input_ids: List[int],
         id_token: Dict[int, str],
-        token_lookup: Dict[str, int]
+        token_lookup: Dict[str, int],
+        l_prompt: int
     ) -> Tuple[str, List[int]]:
         """
         Generates a JSON string value.
@@ -30,7 +31,7 @@ class ConstrainedDecoding:
 
         result_chars: List[str] = []
 
-        while True:
+        for _ in range(l_prompt):
             logits = model.get_logits_from_input_ids(input_ids)
 
             allowed: Set[int] = set()
@@ -62,7 +63,8 @@ class ConstrainedDecoding:
     def generate_number_value(
         model: Small_LLM_Model,
         input_ids: List[int],
-        id_token: Dict[int, str]
+        id_token: Dict[int, str],
+        l_prompt: int
     ) -> Tuple[str, List[int]]:
         """
         Generates a JSON number value.
@@ -72,7 +74,7 @@ class ConstrainedDecoding:
         has_dot = False
         has_digit = False
 
-        while True:
+        for _ in range(l_prompt):
             logits = model.get_logits_from_input_ids(input_ids)
             allowed: Set[int] = set()
 
@@ -132,7 +134,7 @@ class ConstrainedDecoding:
     def generate_boolean_value(
         model: Small_LLM_Model,
         input_ids: List[int],
-        id_token: Dict[int, str]
+        id_token: Dict[int, str],
     ) -> Tuple[str, List[int]]:
         """
         Generates a JSON boolean value.
