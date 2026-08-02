@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Literal
 from pydantic import BaseModel, ConfigDict, ValidationError
 import json
 import argparse
@@ -20,7 +20,7 @@ class ParamType(BaseModel):
     Validates allowed types for function parameters.
     """
     model_config = ConfigDict(extra="forbid")
-    type: Any
+    type: Literal["number", "integer", "string", "boolean"]
 
 
 class FunctionDefinition(BaseModel):
