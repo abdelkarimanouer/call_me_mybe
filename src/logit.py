@@ -1,3 +1,7 @@
+"""
+This file does math to pick the best words for the AI.
+It hides bad options and chooses the highest scoring good one.
+"""
 from typing import List, Set
 import numpy as np
 

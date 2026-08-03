@@ -1,3 +1,7 @@
+"""
+This file reads and checks the files we give to the program.
+It makes sure everything is correct and reports any errors.
+"""
 from typing import List, Dict, Any, Literal
 from pydantic import BaseModel, ConfigDict, ValidationError
 import json

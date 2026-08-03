@@ -1,3 +1,7 @@
+"""
+This file helps figure out which function the user wants.
+It uses the AI model to pick the best matching name from a list.
+"""
 from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
 from typing import List, Dict, Any
 from .logit import Logit

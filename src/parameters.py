@@ -1,3 +1,7 @@
+"""
+This file extracts information from what the user says.
+It reads values like names or numbers to feed into functions.
+"""
 from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
 from typing import Dict, Any, List
 from .constrained_decoding import ConstrainedDecoding

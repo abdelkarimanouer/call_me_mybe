@@ -1,3 +1,7 @@
+"""
+This file is the main starting point of the application.
+It reads the inputs, runs the whole process, and checks the time.
+"""
 from .parsing import Parsing
 from .generate import Generate
 from typing import List, Any

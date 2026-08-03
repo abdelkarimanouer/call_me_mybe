@@ -1,3 +1,7 @@
+"""
+This file loads the dictionary of words the AI knows.
+It helps match normal text strings to their secret ID numbers.
+"""
 from json import load
 from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
 from typing import Dict, List, Set

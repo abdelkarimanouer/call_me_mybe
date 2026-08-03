@@ -1,3 +1,7 @@
+"""
+This file handles the main job of calling the functions.
+It takes user requests, processes them, and saves the answers.
+"""
 from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
 from typing import List, Dict, Any
 from .vocab import Vocab

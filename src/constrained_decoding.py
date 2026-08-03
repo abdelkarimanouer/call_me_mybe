@@ -1,3 +1,7 @@
+"""
+This file helps the AI make sure its answers are correct.
+It forces the text to be proper words or numbers or booleans.
+"""
 from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
 from typing import List, Dict, Set, Tuple
 from .vocab import Vocab
